@@ -1,0 +1,185 @@
+//made by Bea Carbone - 2016
+
+var sourcedir, punctadir, sourcelist, punctalist, slice, AvgcountArray;
+var channel, title, title1, titlet, number, area, nameArray;
+var AvgareaArray, countArray, areaArray, l, colos;
+var Num, are, one, two, o, h, numberNames;
+
+//choosing the source folder w/subfolders (automatically lists names of folders in results) 
+//images should be single channel chosen ROI that were taken at 1048x1048 for appropriate sizing of puncta
+//choosing the color of the channels, mostly for labeling's sake
+waitForUser("This macro needs several folders: \n-one with the separate channel images in subfolders for conditions \n-an empty one for the puncta \n-an empty one for masks \n \n -Files need to be single channel images-");
+sourcedir = getDirectory("Choose folder for images");
+sourcelist = getFileList(sourcedir);
+Dialog.create("");
+	colos = newArray("Green", "Red", "Blue", "Cyan");
+	Dialog.addChoice("Channel color", colos, "Green");
+Dialog.show;
+channel = Dialog.getChoice;
+
+//choosing folders for results output - the same output for all conditions to avoid needing to 
+//pull some extra menu bullshit in creating subfolders
+punctadir = getDirectory("Choose folder for "+channel+" puncta");
+thresholddir = getDirectory("Choose folder for "+channel+" masks");
+resultsdir = getDirectory("Choose folder for excel files");
+
+//Needed to list the column titles
+l = "thresholding";
+for(t=0;t<160;t+=3) {
+	l = l +"," + t;
+}
+
+//creating all the arrays referenced throughout the program
+nameArray = newArray();
+
+AvgareaArray = newArray(l,"");
+AvgcountArray = newArray(l,"");
+
+histareaArray = newArray();
+histpunctaArray = newArray();
+
+
+
+//the "meat" starts here
+//goal: to assess the # and area of puncta at threshold intervals of 3 to a maximum of 159/255
+//and try to present it in a way that allows for easy analysis of data.
+//The final presentation of data should be an XvY graph of puncta(axis1) and area(axis2), to find
+//a threshold point post-spike of the area and pre-spike or mid-spike of puncta count that reliably
+//indicates the approximate description of the ROI it references.
+//secondary goal: modify data collection to allow for immediate post-collection analysis
+//and to create a standardized method of choosing the optimal threshold for ROI description
+e = 0;
+for (i=0;i<sourcelist.length; i++) {
+	condition = getFileList(sourcedir+sourcelist[i]);
+	filename = File.getName(sourcedir+sourcelist[i]);
+	AvgcountArray = Array.concat(AvgcountArray, filename);
+	AvgareaArray = Array.concat(AvgareaArray, filename);
+	histareaArray = Array.concat(histareaArray, filename);
+	histpunctaArray = Array.concat(histpunctaArray, filename);
+	for(d=0;d<condition.length;d++)	{
+		open(sourcedir+sourcelist[i]+condition[d]);
+		title = getTitle();
+		run("Properties...", "channels=1 slices=1 frames=1 unit=um pixel_width=0.1705 pixel_height=0.1705 voxel_depth=1");
+		run("Gaussian Blur...", "sigma=1");
+		setColor("Magenta");
+		Num = title;
+		are = title;
+		for(t=0;t<160;t+=3) {
+			selectImage(title);
+			titlet = substring(title, 0, lengthOf(title)-4);
+			nameArray = Array.concat(nameArray, titlet+"_"+t);
+			//for the definition of the mask function - see the bottom of the code
+			mask();
+			histareaArray = Array.concat(histareaArray, area);
+			histpunctaArray = Array.concat(histpunctaArray, number);
+			Num = Num + "," +number;
+			are = are + "," +area;
+		}
+	AvgcountArray = Array.concat(AvgcountArray, Num);
+	AvgareaArray = Array.concat(AvgareaArray, are);
+	selectImage(title);
+	close();
+	selectWindow(title+"_"+channel+0+"_mask");
+	run("Select None");
+	setSlice(1);
+	run("Label...", "format=Label starting=0 interval=1 x=5 y=5 font=8 text=[] range=1-51 use");
+	saveAs("Tiff",thresholddir+titlet);
+	close();
+	}
+	e = e+1;
+}
+Array.show(channel,AvgareaArray,AvgcountArray);
+
+selectWindow(channel);
+saveAs("Results",resultsdir+channel+".csv");
+
+//at this point, all of the data are collected
+//the following lines are for post-collection analysis
+
+numberNames = (nameArray.length)/54;
+
+statsAreaArray = newArray("image name, min, max, mean, stdDev");
+statsPunctaArray = newArray("image name, min, max, mean, stdDev");
+stats2areaArray = newArray(l,"min, max, mean, stdDev");
+stats2punctaArray = newArray(l,"min, max, mean, stdDev");
+h=0;
+print(histareaArray.length);
+for(o=53;o<histareaArray.length;o+=54) {
+	
+	puncta = newArray();
+	area = newArray();
+	
+	for(s=;s<histareaArray.length;s+=numberNames) {
+		area = Array.concat(area, histareaArray[s]);
+		puncta = Array.concat(puncta,histpunctaArray[s]);
+		Array.print(puncta);
+	}
+	
+	slicedarea = Array.slice(histareaArray,h,o);
+	Array.getStatistics(slicedarea, min, max, mean, stdDev);
+	statsAreaArray = Array.concat(statsAreaArray, nameArray[h] + "," + min + "," + max + "," + mean + "," +stdDev);
+	
+	slicedpuncta = Array.slice(histpunctaArray,h,o);
+	Array.getStatistics(slicedpuncta, min, max, mean, stdDev);
+	statsPunctaArray = Array.concat(statsPunctaArray, nameArray[h] + "," + min + "," + max + "," + mean + "," +stdDev);
+	
+	stats2="";
+	Array.getStatistics(area, min, max, mean, stdDev);
+	stats2 = stats2+min+","+max+","+mean+","+stdDev+",";
+	stats2areaArray = Array.concat(stats2areaArray, stats2);
+
+	stats2="";
+	Array.getStatistics(puncta, min, max, mean, stdDev);
+	stats2 = stats2+min+","+max+","+mean+","+stdDev+",";
+	stats2punctaArray = Array.concat(stats2punctaArray, stats2);
+
+	h=h+54;
+}
+Array.show("Statistics", statsAreaArray, statsPunctaArray, stats2areaArray, stats2punctaArray);
+selectWindow("Statistics");
+saveAs("Results",resultsdir+channel+"Stats.csv");
+
+
+//now to look for where the average area (of which condition?) at a certain threshold is lowest
+//and the average puncta is within 1 SD of the max value
+
+//Referenced functions are relegated to the end of the code
+
+function mask() {
+	title1 = getTitle();
+	run("Clear Results");
+	run("Threshold...");
+	setAutoThreshold("Default dark");
+	setThreshold(t,255);
+	run("Find Maxima...", "noise=7.5 output=[Segmented Particles] above");
+	selectImage(title1+" Segmented");
+	run("Watershed");
+	run("Analyze Particles...", "size=1-60 pixel show=Masks add");
+	number = roiManager("count");	
+	roiManager("Measure");
+	area = 0;
+	if(roiManager("count")>0) {
+		roiManager("Save",punctadir+"ROI_"+titlet+"_"+t+".zip");
+		for(j=0;j<nResults;j++) {
+			area = area + getResult("Area",j);
+		}
+		area = area/nResults;
+	}
+	roiManager("reset");
+	selectImage("Mask of "+title1+" Segmented"); 
+	rename(title+"_"+channel+t+"_mask");
+	selectImage(title1+" Segmented");
+	close();
+	if(t>0){
+		selectImage(title+"_"+channel+t+"_mask");
+		run("Select All");
+		run("Copy");
+		close();
+		selectImage(title+"_"+channel+0+"_mask");
+		run("Add Slice");
+		setSlice(nSlices);
+		titlet = substring(title,0, lengthOf(title)-4);
+		run("Set Label...", "label="+titlet+"_"+t);
+		run("Paste");
+	}
+}
