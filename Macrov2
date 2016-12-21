@@ -64,6 +64,8 @@ for (i=0;i<sourcelist.length; i++) {
 		setColor("Magenta");
 		Num = title;
 		are = title;
+		histareaArray = Array.concat(histareaArray, "");
+		histpunctaArray = Array.concat(histpunctaArray, "");
 		for(t=0;t<160;t+=3) {
 			selectImage(title);
 			titlet = substring(title, 0, lengthOf(title)-4);
@@ -100,45 +102,54 @@ numberNames = (nameArray.length)/54;
 
 statsAreaArray = newArray("image name, min, max, mean, stdDev");
 statsPunctaArray = newArray("image name, min, max, mean, stdDev");
-stats2areaArray = newArray(l,"min, max, mean, stdDev");
-stats2punctaArray = newArray(l,"min, max, mean, stdDev");
 h=0;
-print(histareaArray.length);
+deviationarea = 0;
+deviationpuncta = 0;
 for(o=53;o<histareaArray.length;o+=54) {
-	
-	puncta = newArray();
-	area = newArray();
-	
-	for(s=;s<histareaArray.length;s+=numberNames) {
-		area = Array.concat(area, histareaArray[s]);
-		puncta = Array.concat(puncta,histpunctaArray[s]);
-		Array.print(puncta);
+	if(histareaArray[h] >=0){
+		slicedarea = Array.slice(histareaArray,h,o);
+		Array.getStatistics(slicedarea, min, max, mean, stdDev);
+		statsAreaArray = Array.concat(statsAreaArray, nameArray[h] + "," + min + "," + max + "," + mean + "," +stdDev);
+		slicedpuncta = Array.slice(histpunctaArray,h,o);
+		Array.getStatistics(slicedpuncta, min, max, mean, stdDev);
+		statsPunctaArray = Array.concat(statsPunctaArray, nameArray[h] + "," + min + "," + max + "," + mean + "," +stdDev);
 	}
-	
-	slicedarea = Array.slice(histareaArray,h,o);
-	Array.getStatistics(slicedarea, min, max, mean, stdDev);
-	statsAreaArray = Array.concat(statsAreaArray, nameArray[h] + "," + min + "," + max + "," + mean + "," +stdDev);
-	
-	slicedpuncta = Array.slice(histpunctaArray,h,o);
-	Array.getStatistics(slicedpuncta, min, max, mean, stdDev);
-	statsPunctaArray = Array.concat(statsPunctaArray, nameArray[h] + "," + min + "," + max + "," + mean + "," +stdDev);
-	
-	stats2="";
-	Array.getStatistics(area, min, max, mean, stdDev);
-	stats2 = stats2+min+","+max+","+mean+","+stdDev+",";
-	stats2areaArray = Array.concat(stats2areaArray, stats2);
-
-	stats2="";
-	Array.getStatistics(puncta, min, max, mean, stdDev);
-	stats2 = stats2+min+","+max+","+mean+","+stdDev+",";
-	stats2punctaArray = Array.concat(stats2punctaArray, stats2);
-
-	h=h+54;
+	else {
+		h=h+1;
+		o=o+1;
+		slicedarea = Array.slice(histareaArray,h,o);
+		Array.getStatistics(slicedarea, min, max, mean, stdDev);
+		statsAreaArray = Array.concat(statsAreaArray, nameArray[h] + "," + min + "," + max + "," + mean + "," +stdDev);
+		slicedpuncta = Array.slice(histpunctaArray,h,o);
+		Array.getStatistics(slicedpuncta, min, max, mean, stdDev);
+		statsPunctaArray = Array.concat(statsPunctaArray, nameArray[h] + "," + min + "," + max + "," + mean + "," +stdDev);
+	h=h+55;
+	o=o+1;
 }
-Array.show("Statistics", statsAreaArray, statsPunctaArray, stats2areaArray, stats2punctaArray);
+Array.show("Statistics", statsAreaArray, statsPunctaArray);
 selectWindow("Statistics");
 saveAs("Results",resultsdir+channel+"Stats.csv");
 
+//statsArrayarea = newArray(l,"");
+//statsArraypuncta = newArray(l,"");
+
+
+//o=0;
+//for(s=0;s<(numberNames-1);s++) {
+//	for(o=55;o<histareaArray.length;o+=54) {
+//		statsarea = Array.concat(statsArrayarea,histareaArray[(o-54)]);
+//		statspuncta = Array.concat(statsArraypuncta, histpunctaArray[(o-54)]);
+//		o=o+1;
+//	}
+//	Array.getStatistics(statsarea, min, max, mean, stdDev);
+//	statsArrayarea = Array.concat(statsArrayarea, nameArray[(o-55)] + "," + min + "," + max + "," + mean + "," +stdDev);
+//	Array.getStatistics(statspuncta, min, max, mean, stdDev);
+//	statsArraypuncta = Array.concat(statsArraypuncta, nameArray[(o-55)] + "," + min + "," + max + "," + mean + "," +stdDev);
+//}
+//Array.show(statsArrayarea);
+//Array.show(statsArraypuncta);
+
+//if area+1SD<puncta-1SD = take slice b/n the two
 
 //now to look for where the average area (of which condition?) at a certain threshold is lowest
 //and the average puncta is within 1 SD of the max value
