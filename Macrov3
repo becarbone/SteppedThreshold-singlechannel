@@ -4,6 +4,11 @@ var sourcedir, punctadir, sourcelist, punctalist, slice, ROIpunctaArray;
 var channel, title, tempTitle, shortTitle, number, area, nameArray, statsperROIpuncta;
 var ROIareaArray, countArray, areaArray, l, color, statsPerROIarea;
 var Num, are, numberNames,AllareaArray,AllpunctaArray,standard;
+var thresholddir, resultsdir, t, threshStatsArea, threshStatsPuncta, PunctastandardMeanArray;
+var PunctastandardDevArray, PunctastandardMaxArray, AreastandardMeanArray, AreastandardDevArray;
+var AreastandardMaxArray, condition, e, i, filename, punctastats, areastats;
+var d, tempareaArray, temppunctaArray, min, max, mean, stdDev, StatsArea;
+var StatsDevArea, StatsDevPuncta,v, stopArea, stopPuncta, AnalysisArea, AnalysisPuncta;
 
 //choosing the source folder w/subfolders (automatically lists names of folders in results) 
 //images should be single channel chosen ROI that were taken at 1048x1048 for appropriate sizing of puncta
@@ -1244,19 +1249,32 @@ Array.getStatistics(PunctastandardMeanArray, min, max, mean, stdDev);
 StatsPuncta = max;
 StatsDevPuncta = stdDev;
 
-for(v=0;v>AreastandardMeanArray;v++) {
+print(StatsArea);
+print(StatsPuncta);
+
+for(v=0;v>AreastandardMeanArray.length;v++) {
+	print(AreastandardMeanArray[v]);
 	if(AreastandardMeanArray[v]==StatsArea) {
 		stopArea=v;
 	}
 }
-print(AreastandardMeanArray[stopArea]);
 
-for(v=0;v>PunctastandardMeanArray;v++) {
+AnalysisArea = Array.slice(AreastandardMeanArray,stopArea,stopPuncta);
+
+print(stopArea);
+
+for(v=0;v>PunctastandardMeanArray.length;v++) {
+	print(PunctastandardMeanArray[v]);
 	if(PunctastandardMeanArray[v]==StatsPuncta) {
 		stopPuncta=v;
 	}
 }
-print(PunctastandardMeanArray[stopPuncta]);
+print(stopPuncta);
+
+butt = stopPuncta - stopArea;
+AnalysisPuncta = Array.slice(PunctastandardMeanArray,stopPuncta-butt,stopPuncta);
+
+Array.show("slices", AnalysisPuncta, AnalysisArea);
 
 
 //Referenced functions are relegated to the end of the code
