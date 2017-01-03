@@ -1218,17 +1218,6 @@ for (i=0;i<sourcelist.length; i++) {
 		AreastandardDevArray = Array.concat(AreastandardDevArray,stdDev);
 	}
 }
-
-Array.show(channel,ROIareaArray,ROIpunctaArray);
-Array.show("Statistics", statsPerROIarea, statsperROIpuncta);
-Array.show("Threshold statistics",threshStatsPuncta, threshStatsArea);
-selectWindow("Statistics");
-saveAs("Results",resultsdir+channel+"Stats_per_cell.csv");
-selectWindow("Threshold statistics");
-saveAs("Results",resultsdir+channel+"Stats_per_threshold.csv");
-selectWindow(channel);
-saveAs("Results",resultsdir+channel+".csv");
-
 //if area+1SD<puncta-1SD = take slice b/n the two
 //now to look for where the average area (of which condition?) at a certain threshold is lowest
 //and the average puncta is within 1 SD of the max value
@@ -1253,14 +1242,14 @@ AnalysisPuncta = Array.slice(PunctastandardMeanArray, stopPuncta - stopArea,stop
 AnalysisArea = Array.slice(AreastandardMeanArray, stopPuncta - stopArea,stopPuncta);
 
 //the threshold should be ~1/2 between the difference of the two - multiplied by 3 to get threshold equivalent
-analyze = (stopArea+round((stopPuncta-(stopArea/2)/2))*3);
+analyze = (stopPuncta-(round((stopPuncta-stopArea)/4)))*3;
 //chunkPuncta = punctathresh+analyze;
 //chunkArea = areathresh+analyze;
 //Array.show("will this work?", chunkArea,chunkPuncta);
 waitForUser("Use data from threshold "+analyze);
 
-ROIareaArray = Array.concat(ROIareaArray, "use threshold" + analyze);
-ROIpunctaArray = Array.concat(ROIpunctaArray, "use threshold" + analyze);
+ROIareaArray = Array.concat(ROIareaArray, "use threshold " + analyze);
+ROIpunctaArray = Array.concat(ROIpunctaArray, "use threshold " + analyze);
 
 Array.show(channel,ROIareaArray,ROIpunctaArray);
 Array.show("Statistics", statsPerROIarea, statsperROIpuncta);
