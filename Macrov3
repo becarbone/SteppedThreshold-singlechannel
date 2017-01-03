@@ -62,7 +62,6 @@ Dialog.create("which condition should be used for analysis standardization?");
 	Dialog.addChoice("Condition",condition);
 Dialog.show;
 standard = Dialog.getChoice;
-print(standard);
 
 //the "meat" starts here
 //goal: to assess the # and area of puncta at threshold intervals of 3 to a maximum of 159/255
@@ -80,7 +79,6 @@ e = 0;
 for (i=0;i<sourcelist.length; i++) {
 	condition = getFileList(sourcedir+sourcelist[i]);
 	filename = File.getName(sourcedir+sourcelist[i]);
-	print(sourcelist[i]);
 	ROIpunctaArray = Array.concat(ROIpunctaArray, filename);
 	ROIareaArray = Array.concat(ROIareaArray, filename);
 	AllareaArray = Array.concat(AllareaArray, filename);
@@ -1219,26 +1217,19 @@ for (i=0;i<sourcelist.length; i++) {
 		AreastandardMeanArray = Array.concat(AreastandardMeanArray,mean);
 		AreastandardDevArray = Array.concat(AreastandardDevArray,stdDev);
 	}
-
-	
-
-
-	//punctastats
-	//areastats
 }
 
-Array.show("uh", AreastandardDevArray, AreastandardMeanArray, AreastandardMaxArray);
-Array.show("uh2", PunctastandardDevArray, PunctastandardMeanArray, PunctastandardMaxArray);
-
 Array.show(channel,ROIareaArray,ROIpunctaArray);
-Array.show("Statistics", statsPerROIarea, statsperROIpuncta, threshStatsPuncta, threshStatsArea);
+Array.show("Statistics", statsPerROIarea, statsperROIpuncta);
+Array.show("Threshold statistics",threshStatsPuncta, threshStatsArea);
 selectWindow("Statistics");
-saveAs("Results",resultsdir+channel+"Stats.csv");
+saveAs("Results",resultsdir+channel+"Stats_per_cell.csv");
+selectWindow("Threshold statistics");
+saveAs("Results",resultsdir+channel+"Stats_per_threshold.csv");
 selectWindow(channel);
 saveAs("Results",resultsdir+channel+".csv");
 
 //if area+1SD<puncta-1SD = take slice b/n the two
-
 //now to look for where the average area (of which condition?) at a certain threshold is lowest
 //and the average puncta is within 1 SD of the max value
 
@@ -1249,33 +1240,37 @@ Array.getStatistics(PunctastandardMeanArray, min, max, mean, stdDev);
 StatsPuncta = max;
 StatsDevPuncta = stdDev;
 
-print(StatsArea);
-print(StatsPuncta);
-
-for(v=0;v>AreastandardMeanArray.length;v++) {
-	print(AreastandardMeanArray[v]);
+for(v=0;v<AreastandardMeanArray.length;v++) {
 	if(AreastandardMeanArray[v]==StatsArea) {
 		stopArea=v;
 	}
-}
-
-AnalysisArea = Array.slice(AreastandardMeanArray,stopArea,stopPuncta);
-
-print(stopArea);
-
-for(v=0;v>PunctastandardMeanArray.length;v++) {
-	print(PunctastandardMeanArray[v]);
-	if(PunctastandardMeanArray[v]==StatsPuncta) {
+	else if(PunctastandardMeanArray[v]==StatsPuncta) {
 		stopPuncta=v;
 	}
 }
-print(stopPuncta);
 
-butt = stopPuncta - stopArea;
-AnalysisPuncta = Array.slice(PunctastandardMeanArray,stopPuncta-butt,stopPuncta);
+AnalysisPuncta = Array.slice(PunctastandardMeanArray, stopPuncta - stopArea,stopPuncta);
+AnalysisArea = Array.slice(AreastandardMeanArray, stopPuncta - stopArea,stopPuncta);
 
-Array.show("slices", AnalysisPuncta, AnalysisArea);
+//the threshold should be ~1/2 between the difference of the two - multiplied by 3 to get threshold equivalent
+analyze = (stopArea+round((stopPuncta-(stopArea/2)/2))*3);
+//chunkPuncta = punctathresh+analyze;
+//chunkArea = areathresh+analyze;
+//Array.show("will this work?", chunkArea,chunkPuncta);
+waitForUser("Use data from threshold "+analyze);
 
+ROIareaArray = Array.concat(ROIareaArray, "use threshold" + analyze);
+ROIpunctaArray = Array.concat(ROIpunctaArray, "use threshold" + analyze);
+
+Array.show(channel,ROIareaArray,ROIpunctaArray);
+Array.show("Statistics", statsPerROIarea, statsperROIpuncta);
+Array.show("Threshold statistics",threshStatsPuncta, threshStatsArea);
+selectWindow("Statistics");
+saveAs("Results",resultsdir+channel+"Stats_per_cell.csv");
+selectWindow("Threshold statistics");
+saveAs("Results",resultsdir+channel+"Stats_per_threshold.csv");
+selectWindow(channel);
+saveAs("Results",resultsdir+channel+".csv");
 
 //Referenced functions are relegated to the end of the code
 
