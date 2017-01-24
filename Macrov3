@@ -13,7 +13,7 @@ var StatsDevArea, StatsDevPuncta,v, stopArea, stopPuncta, AnalysisArea, Analysis
 //choosing the source folder w/subfolders (automatically lists names of folders in results) 
 //images should be single channel chosen ROI that were taken at 1048x1048 for appropriate sizing of puncta
 //choosing the color of the channels, mostly for labeling's sake
-waitForUser("This macro needs several folders: \n-one with the separate channel images in subfolders for conditions \n-an empty one for the puncta \n-an empty one for masks \n \n -Files need to be single channel images-");
+waitForUser("This macro needs several folders: \n-one with the separate channel images in subfolders for conditions \n-an empty one for the puncta \n-an empty one for masks \n-one for files, does not need to be empty \n \n -Files need to be single channel images-");
 sourcedir = getDirectory("Choose folder for images");
 sourcelist = getFileList(sourcedir);
 Dialog.create("");
