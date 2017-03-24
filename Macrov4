@@ -1,74 +1,63 @@
 //made by Bea Carbone - 2016
-
 var sourcedir, sourcelist, color, channel, punctadir, thresholddir, resultsdir;
-var NameString, ROIareaString, ROIpunctaString,condition, filename, title, Num, are;
-var number, area, shortTitle, tempTitle;
+var NameString, condition, filename, title, Num, are, int, intensity;
+var number, area, shortTitle, tempTitle, ROIstring, CorrectedPunctaStr, areaROIarray, areaROI;
 
-//choosing the source folder w/subfolders (automatically lists names of folders in results) 
-//images should be single channel chosen ROI that were taken at 1048x1048 for appropriate sizing of puncta
-//choosing the color of the channels, mostly for labeling's sake
 waitForUser("This macro needs several folders: \n-one with the separate channel images in subfolders for conditions \n-an empty one for the puncta \n-an empty one for masks \n \n -Files need to be single channel images-");
 sourcedir = getDirectory("Choose folder for images");
 sourcelist = getFileList(sourcedir);
-
-//the color selection is for recordkeeping as well as multiple channel analysis
-//I took out that functionality as it wasn't widely better than this and took 
-//too much processing power unnecessarily
 Dialog.create("");
 	color = newArray("Green", "Red", "Blue", "Cyan");
 	Dialog.addChoice("Channel color", color, "Green");
 Dialog.show;
 channel = Dialog.getChoice;
-
-//choosing folders for results output - the same output for all conditions to avoid needing to 
-//pull some extra menu bullshit in creating subfolders
 punctadir = getDirectory("Choose folder for "+channel+" puncta");
 thresholddir = getDirectory("Choose folder for "+channel+" masks");
 resultsdir = getDirectory("Choose folder for excel files");
-
-//Needed to list the column titles
+run("Set Measurements...", "area mean integrated area_fraction limit redirect=None decimal=3");
 l = "thresholding";
-
-//change here if you need to change the # of steps (1/2)
 for(t=0;t<160;t+=3) {
 	l = l +"	" + t;
 }
-
-ROIpunctaString = l+"\n";
-ROIareaString = l+"\n";
-
-//the "meat" starts here
-//goal: to assess the # and area of puncta at threshold intervals of 3 to a maximum of 159/255
-//and try to present it in a way that allows for easy analysis of data.
-//The final presentation of data should be brought into graphpad on an XvY graph of puncta(axis1) and area(axis2), to find
-//a threshold point post-spike of the area and pre-spike or mid-spike of puncta count that reliably
-//indicates the approximate description of the ROI it references.
-
+ROIstring = "puncta/um^2		average_area		average_intensity\n"+l+"		"+l+"		"+l+"\n";
 for (i=0;i<sourcelist.length; i++) {
+	areaROIarray = newArray();
 	condition = getFileList(sourcedir+sourcelist[i]);
 	filename = File.getName(sourcedir+sourcelist[i]);
-	ROIpunctaString = ROIpunctaString +filename+"\n";
-	ROIareaString = ROIareaString +filename+"\n";
+	ROIstring = ROIstring + filename+"\n";
+	Dialog.create("list the area per ROI");
+	for(p=0;p<condition.length;p++){	
+		Dialog.addNumber(condition[p],1);
+		}
+	Dialog.show;
+	for(p=0;p<condition.length;p++){
+		areaROI = Dialog.getNumber();
+		areaROIarray = Array.concat(areaROIarray, areaROI);
+		}
 	for(d=0;d<condition.length;d++)	{
+		CorrectedPunctaStr = CorrectedPunctaStr + filename;
 		open(sourcedir+sourcelist[i]+condition[d]);
 		title = getTitle();
 		run("Properties...", "channels=1 slices=1 frames=1 unit=um pixel_width=0.1705 pixel_height=0.1705 voxel_depth=1");
 		run("Gaussian Blur...", "sigma=1");
 		setColor("Magenta");
-		Num = title;
+		int = title;
+		Num = title + "	" + d2s(2,areaROIarray[d]);
 		are = title;
-		//change here if you want to change the # of steps (2/2)
+		corNum = title;
+		
 		for(t=0;t<160;t+=3) {
 			selectImage(title);
 			shortTitle = substring(title, 0, lengthOf(title)-4);
 			NameString = Array.concat(NameString, shortTitle+"_"+t);
-			//for the definition of the mask function - see the bottom of the code
 			mask();
 			Num = Num + "	" + number;
 			are = are + "	" + area;
+			int = int + "	" + intensity;
+			corNum = corNum + "	" + (number/areaROIarray[d]);
 			}
-		ROIpunctaString = ROIpunctaString+  Num + "\n";
-		ROIareaString = ROIareaString+  are + "\n";
+		ROIstring = ROIstring+corNum+"		"+are+"		"+int+"\n";
+		CorrectedPunctaStr = CorrectedPunctaStr + corNum;
 		selectImage(title);
 		close();
 		selectWindow(title+"_"+channel+0+"_mask");
@@ -79,14 +68,8 @@ for (i=0;i<sourcelist.length; i++) {
 		close();
 	}
 }
-//if area+1SD<puncta-1SD = take slice b/n the two
-//now to look for where the average area (of which condition?) at a certain threshold is lowest
-//and the average puncta is within 1 SD of the max value
+File.saveString(ROIstring,resultsdir+channel+".xls");
 
-File.saveString(ROIareaString,resultsdir+channel+"_area.xls");
-File.saveString(ROIpunctaString,resultsdir+channel+"_puncta.xls");
-
-//Referenced functions are relegated to the end of the code
 
 function mask() {
 	tempTitle = getTitle();
@@ -106,8 +89,10 @@ function mask() {
 		roiManager("Save",punctadir+"ROI_"+shortTitle+"_"+t+".zip");
 		for(j=0;j<nResults;j++) {
 			area = area + getResult("Area",j);
+			intensity = intensity + getResult("RawIntDen",j);
 		}
 		area = area/nResults;
+		intensity = intensity/nResults;
 	}
 	roiManager("reset");
 	selectImage("Mask of "+tempTitle+" Segmented"); 
