@@ -2,7 +2,6 @@
 var sourcedir, sourcelist, color, channel, punctadir, thresholddir, resultsdir;
 var NameString, condition, filename, title, Num, are, int, intensity;
 var number, area, shortTitle, tempTitle, ROIstring, CorrectedPunctaStr, areaROIarray, areaROI;
-
 waitForUser("This macro needs several folders: \n-one with the separate channel images in subfolders for conditions \n-an empty one for the puncta \n-an empty one for masks \n \n -Files need to be single channel images-");
 sourcedir = getDirectory("Choose folder for images");
 sourcelist = getFileList(sourcedir);
@@ -15,11 +14,11 @@ punctadir = getDirectory("Choose folder for "+channel+" puncta");
 thresholddir = getDirectory("Choose folder for "+channel+" masks");
 resultsdir = getDirectory("Choose folder for excel files");
 run("Set Measurements...", "area mean integrated area_fraction limit redirect=None decimal=3");
-l = "thresholding";
+l = "";
 for(t=0;t<160;t+=3) {
 	l = l +"	" + t;
 }
-ROIstring = "puncta/um^2		average_area		average_intensity\n"+l+"		"+l+"		"+l+"\n";
+ROIstring = "puncta/um^2	average_area	average_intensity\nthresholding	area_ofROI(um^2)"+l+"		thresholding"+l+"		thresholding"+l+"\n";
 for (i=0;i<sourcelist.length; i++) {
 	areaROIarray = newArray();
 	condition = getFileList(sourcedir+sourcelist[i]);
@@ -42,18 +41,18 @@ for (i=0;i<sourcelist.length; i++) {
 		run("Gaussian Blur...", "sigma=1");
 		setColor("Magenta");
 		int = title;
-		Num = title + "	" + d2s(2,areaROIarray[d]);
+		Num = title;
 		are = title;
 		corNum = title;
-		
+		corNum = corNum + "	" +areaROIarray[d];
 		for(t=0;t<160;t+=3) {
 			selectImage(title);
 			shortTitle = substring(title, 0, lengthOf(title)-4);
 			NameString = Array.concat(NameString, shortTitle+"_"+t);
 			mask();
-			Num = Num + "	" + number;
-			are = are + "	" + area;
-			int = int + "	" + intensity;
+			Num = Num +"	" +  number;
+			are = are +"	" +  area;
+			int = int +"	" +  intensity;
 			corNum = corNum + "	" + (number/areaROIarray[d]);
 			}
 		ROIstring = ROIstring+corNum+"		"+are+"		"+int+"\n";
@@ -69,8 +68,6 @@ for (i=0;i<sourcelist.length; i++) {
 	}
 }
 File.saveString(ROIstring,resultsdir+channel+".xls");
-
-
 function mask() {
 	tempTitle = getTitle();
 	run("Clear Results");
