@@ -1,0 +1,140 @@
+//made by Bea Carbone - 2016
+var sourcedir, sourcelist, color, channel, punctadir, thresholddir, resultsdir;
+var NameString, condition, filename, title, Num, are, int, intensity;
+var number, area, shortTitle, tempTitle, ROIstring, CorrectedPunctaStr, areaROIarray, areaROI;
+waitForUser("This macro needs several folders: \n-one with the separate channel images in subfolders for conditions \n-an empty one for the puncta \n-an empty one for masks \n \n -Files need to be single channel images-");
+sourcedir = getDirectory("Choose folder for images");
+sourcelist = getFileList(sourcedir);
+Dialog.create("");
+	color = newArray("Green", "Red", "Blue", "Cyan");
+	Dialog.addChoice("Channel color", color, "Green");
+Dialog.show;
+channel = Dialog.getChoice;
+punctadir = getDirectory("Choose folder for "+channel+" puncta");
+thresholddir = getDirectory("Choose folder for "+channel+" masks");
+resultsdir = getDirectory("Choose folder for excel files");
+run("Set Measurements...", "area mean integrated area_fraction limit redirect=None decimal=3");
+l = "";
+for(t=0;t<160;t+=3) {
+	l = l +"	" + t;
+}
+ROIstring = "puncta/um^2	average_area	average_intensity\nthresholding	area_ofROI(um^2)"+l+"		thresholding"+l+"		thresholding"+l+"\n";
+for (i=0;i<sourcelist.length; i++) {
+	areaROIarray = newArray();
+	condition = getFileList(sourcedir+sourcelist[i]);
+	filename = File.getName(sourcedir+sourcelist[i]);
+	ROIstring = ROIstring + filename+"\n";
+	Dialog.create("list the area per ROI");
+	
+	for(p=0;p<condition.length;p++){	
+		Dialog.addNumber(condition[p],1);
+		}
+	Dialog.show;
+	for(p=0;p<condition.length;p++){
+		areaROI = Dialog.getNumber();
+		areaROIarray = Array.concat(areaROIarray, areaROI);
+		}
+	for(d=0;d<condition.length;d++)	{
+		
+		CorrectedPunctaStr = CorrectedPunctaStr + filename;
+		open(sourcedir+sourcelist[i]+condition[d]);
+		title = getTitle();
+		tifTitle = substring(title,0,(lengthOf(title)-lengthOf(".tif")));
+		run("Properties...", "channels=1 slices=1 frames=1 unit=micron pixel_width=0.1706776 pixel_height=0.1706776 voxel_depth=0.2937316");
+		run("Duplicate...", title+"-1");
+		selectImage(tifTitle+"-1.tif");
+		//the diff b/n ver 2, ver 3 is here - the creation of a median filtered image
+		//and its subtraction from the main image. This is after reading Peter Bankhead's free 
+		//image analysis in imageJ book "Analyzing fluorescence microscopy images with ImageJ"
+		//section 9
+		run("Median...", "radius=2");
+		imageCalculator("Subtract create", title,tifTitle+"-1.tif");
+		selectImage(title);
+		close();
+		selectImage(tifTitle+"-1.tif");
+		close();
+		selectWindow("Result of "+title);
+		rename(title);
+		setColor("Magenta");
+		int = title;
+		Num = title;
+		are = title;
+		corNum = title;
+		corNum = corNum + "	" +areaROIarray[d];
+		for(t=0;t<160;t+=3) {
+
+			selectImage(title);
+			shortTitle = substring(title, 0, lengthOf(title)-4);
+			NameString = Array.concat(NameString, shortTitle+"_"+t);
+			mask();
+			Num = Num +"	" +  number;
+			are = are +"	" +  area;
+			int = int +"	" +  intensity;
+			corNum = corNum + "	" + (number/areaROIarray[d]);
+			}
+		
+		ROIstring = ROIstring+corNum+"		"+are+"		"+int+"\n";
+		CorrectedPunctaStr = CorrectedPunctaStr + corNum;
+		selectImage(title);
+		close();
+		selectWindow(title+"_"+channel+0+"_mask");
+		run("Select None");
+		setSlice(1);
+		run("Label...", "format=Label starting=0 interval=1 x=5 y=5 font=8 text=[] range=1-51 use");
+		saveAs("Tiff",thresholddir+shortTitle);
+		close();
+		
+	}
+}
+File.saveString(ROIstring,resultsdir+channel+".xls");
+function mask() {
+	tempTitle = getTitle();
+	run("Clear Results");
+	run("Threshold...");
+	setAutoThreshold("Default dark");
+	setThreshold(t,255);
+	selectWindow(tempTitle);
+	run("Duplicate...", "title=Unmask");
+	selectWindow(tempTitle);
+	run("Find Maxima...", "noise=7.5 output=[Segmented Particles] above");
+	selectImage(tempTitle+" Segmented");
+	run("Watershed");
+	run("Analyze Particles...", "size=1-60 pixel show=Masks add");
+	number = roiManager("count");	
+	selectImage("Mask of "+tempTitle+" Segmented");
+	roiManager("Measure");
+	area = 0;
+	if(roiManager("count")>0) {
+		roiManager("Save",punctadir+"ROI_"+shortTitle+"_"+t+".zip");
+		for(j=0;j<nResults;j++) {
+			area = area + getResult("Area",j);
+		}
+		area = area/nResults;
+		run("Clear Results");
+		roiManager("reset");
+		selectImage("Unmask");
+		roiManager("Measure");
+		for(j=0;j<nResults;j++) {
+			intensity = intensity + getResult("Mean",j);
+		}
+	}
+	selectImage("Unmask");
+	close();
+	roiManager("reset");
+	selectImage("Mask of "+tempTitle+" Segmented"); 
+	rename(title+"_"+channel+t+"_mask");
+	selectImage(tempTitle+" Segmented");
+	close();
+	if(t>0){
+		selectImage(title+"_"+channel+t+"_mask");
+		run("Select All");
+		run("Copy");
+		close();
+		selectImage(title+"_"+channel+0+"_mask");
+		run("Add Slice");
+		setSlice(nSlices);
+		shortTitle = substring(title,0, lengthOf(title)-4);
+		run("Set Label...", "label="+shortTitle+"_"+t);
+		run("Paste");
+	}
+}
