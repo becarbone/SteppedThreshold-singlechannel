@@ -1,7 +1,7 @@
 //made by Bea Carbone - 2016
 
 var sourcedir, sourcelist, color, channel, punctadir, thresholddir, resultsdir;
-var nameArray, ROIareaArray, ROIpunctaArray,condition, filename, title, Num, are;
+var NameString, ROIareaString, ROIpunctaString,condition, filename, title, Num, are;
 var number, area, shortTitle, tempTitle;
 
 //choosing the source folder w/subfolders (automatically lists names of folders in results) 
@@ -31,13 +31,11 @@ l = "thresholding";
 
 //change here if you need to change the # of steps (1/2)
 for(t=0;t<160;t+=3) {
-	l = l +"," + t;
+	l = l +"	" + t;
 }
 
-nameArray = newArray();
-
-ROIareaArray = newArray(l,"");
-ROIpunctaArray = newArray(l,"");
+ROIpunctaString = l+"\n";
+ROIareaString = l+"\n";
 
 //the "meat" starts here
 //goal: to assess the # and area of puncta at threshold intervals of 3 to a maximum of 159/255
@@ -49,8 +47,8 @@ ROIpunctaArray = newArray(l,"");
 for (i=0;i<sourcelist.length; i++) {
 	condition = getFileList(sourcedir+sourcelist[i]);
 	filename = File.getName(sourcedir+sourcelist[i]);
-	ROIpunctaArray = Array.concat(ROIpunctaArray, filename);
-	ROIareaArray = Array.concat(ROIareaArray, filename);
+	ROIpunctaString = ROIpunctaString +filename+"\n";
+	ROIareaString = ROIareaString +filename+"\n";
 	for(d=0;d<condition.length;d++)	{
 		open(sourcedir+sourcelist[i]+condition[d]);
 		title = getTitle();
@@ -63,14 +61,14 @@ for (i=0;i<sourcelist.length; i++) {
 		for(t=0;t<160;t+=3) {
 			selectImage(title);
 			shortTitle = substring(title, 0, lengthOf(title)-4);
-			nameArray = Array.concat(nameArray, shortTitle+"_"+t);
+			NameString = Array.concat(NameString, shortTitle+"_"+t);
 			//for the definition of the mask function - see the bottom of the code
 			mask();
-			Num = Num + "," + number;
-			are = are + "," + area;
+			Num = Num + "	" + number;
+			are = are + "	" + area;
 			}
-		ROIpunctaArray = Array.concat(ROIpunctaArray, Num);
-		ROIareaArray = Array.concat(ROIareaArray, are);
+		ROIpunctaString = ROIpunctaString+  Num + "\n";
+		ROIareaString = ROIareaString+  are + "\n";
 		selectImage(title);
 		close();
 		selectWindow(title+"_"+channel+0+"_mask");
@@ -85,9 +83,8 @@ for (i=0;i<sourcelist.length; i++) {
 //now to look for where the average area (of which condition?) at a certain threshold is lowest
 //and the average puncta is within 1 SD of the max value
 
-Array.show(channel,ROIareaArray,ROIpunctaArray);
-selectWindow(channel);
-saveAs("Results",resultsdir+channel+".csv");
+File.saveString(ROIareaString,resultsdir+channel+"_area.xls");
+File.saveString(ROIpunctaString,resultsdir+channel+"_puncta.xls");
 
 //Referenced functions are relegated to the end of the code
 
